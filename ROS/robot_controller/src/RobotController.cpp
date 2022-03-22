@@ -51,7 +51,7 @@ bool RobotController::initialize(int argc, char **argv) {
 
         //Set the base frame, to be used by moveit
         if (NULL != _node_handle)
-            _node_handle->param<std::string>("base_frame", _base_frame, "world"); // parameter name, string object reference, default value
+            _node_handle->param<std::string>("base_frame", _base_frame, "base_link"); // parameter name, string object reference, default value
         else
             throw string("_node_handle creation Failed");
 
@@ -77,6 +77,7 @@ bool RobotController::initialize(int argc, char **argv) {
 
         //Initialize the compute path object
         _compute_path->initialize(_node_handle, &_model_state, Utilities::pose_to_matrix(_move_group_ptr->getCurrentPose().pose));
+        _rviz_marker.initialize(_node_handle, _move_group_ptr);
 
         //Semaphore used to notify availablity of new cylinder pose to compute path
         _new_position_available_sem = new Semaphore(0, 0);
@@ -156,17 +157,18 @@ void RobotController::_initialize_gazebo_models() {
     geometry_msgs::Pose current_robot_pose = _move_group_ptr->getCurrentPose().pose;
 
     //Intialize gazebo model state object
-    _model_state.initialize(_node_handle);
+    //_model_state.initialize(_node_handle);
 
     //Set the end effector sphere to robot pose
-    _model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
+    //_model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
 
     //Set the ScopeCylinder sphere
     geometry_msgs::Pose cylinder_pose = current_robot_pose;
 
     tf2::Quaternion cylinder_quat(cylinder_pose.orientation.x, cylinder_pose.orientation.y, cylinder_pose.orientation.z, cylinder_pose.orientation.w);
 
-    _model_state.set_model_position_world("targetCylinder", cylinder_pose);
+    //_model_state.set_model_position_world("targetCylinder", cylinder_pose);
+    _rviz_marker._update_target_position(cylinder_pose);
 }
 
 
@@ -253,12 +255,12 @@ void RobotController::_path_computation_thread_func(){
   double publish_period = 0.03;
   ros::Rate cmd_rate(1 / publish_period);
   geometry_msgs::TwistStamped twist;
-  twist.header.frame_id = "world";
+  twist.header.frame_id = "base_link";
 
   geometry_msgs::Pose current_robot_pose = _move_group_ptr->getCurrentPose().pose;
   Eigen::Matrix4d current_end_effector_matrix = Utilities::pose_to_matrix(current_robot_pose);
   Eigen::Vector3d last_target_pos;
-  _target_matrix = Utilities::pose_to_matrix(_model_state.get_model_position_world("targetCylinder"));
+  _target_matrix = Utilities::pose_to_matrix(_rviz_marker._target_pose);
 
   Eigen::Vector3d target_pos; //target postion
   Eigen::Vector3d current_pos = current_end_effector_matrix.block<3, 1>(0, 3);
@@ -284,7 +286,7 @@ void RobotController::_path_computation_thread_func(){
     Eigen::Matrix4d target_matrix = _target_matrix;
     path_thread.unlock();
     current_robot_pose = _move_group_ptr->getCurrentPose().pose;
-    _model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
+    //_model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
 
     //Get the current end effector matrix
     current_end_effector_matrix = Utilities::pose_to_matrix(current_robot_pose);
@@ -296,9 +298,9 @@ void RobotController::_path_computation_thread_func(){
     //damp_position = Utilities::RuckigCalculation(current_pos, target_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration, max_linear_jerk, publish_period);
     //damp_position = Utilities::OTGCalculation(current_pos, target_pos, last_target_pos, profile_pos, idx_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, publish_period);
     damp_position = Utilities::OTGCalculationS(current_pos, target_pos, last_target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
-    joint_stream << target_pos(0) << ","<< target_pos(1) << ","<< target_pos(2) << ","<< damp_position(0) << ","<< damp_position(1) << ","<< damp_position(2) <<","<< current_pos(0) << ","<< current_pos(1) << ","<< current_pos(2) << ",";
-    joint_stream.seekp(-1, std::ios_base::end);
-    joint_stream << "\n";
+    //joint_stream << target_pos(0) << ","<< target_pos(1) << ","<< target_pos(2) << ","<< damp_position(0) << ","<< damp_position(1) << ","<< damp_position(2) <<","<< current_pos(0) << ","<< current_pos(1) << ","<< current_pos(2) << ",";
+    //joint_stream.seekp(-1, std::ios_base::end);
+    //joint_stream << "\n";
 
     Eigen::Vector3d end_effector_linear_velocity = current_linear_velocity;
     //Calculate orientation
@@ -495,8 +497,8 @@ void RobotController::set_delta_pose(geometry_msgs::Pose delta_pose) {
 */
 void RobotController::_update_cylinder() {
     //Gets the current position of the model
-    geometry_msgs::Pose current_pose = _model_state.get_model_position("targetCylinder");
-
+    geometry_msgs::Pose current_pose;// = _model_state.get_model_position("targetCylinder");
+    current_pose.orientation.w = 1;
     //Update the current position
     current_pose.position.x += _delta_pose.position.x;
     current_pose.position.y += _delta_pose.position.y;
@@ -526,10 +528,12 @@ void RobotController::_update_cylinder() {
     current_pose.orientation.w = target_quat.w();
 
     //Update the model position in gazebo
-    _model_state.set_model_position("targetCylinder", current_pose);
+    Eigen::Matrix4d temp_matrix = Utilities::pose_to_matrix(_rviz_marker._target_pose);
+    Eigen::Matrix4d temp_matrix1 = Utilities::pose_to_matrix(current_pose);
+    Eigen::Matrix4d new_matrix = temp_matrix*temp_matrix1;
+    geometry_msgs::Pose target_pose = Utilities::matrix_to_pose(new_matrix);
 
-    //Set the target matrix
-    geometry_msgs::Pose target_pose = _model_state.get_model_position_world("targetCylinder");
+    _rviz_marker._update_target_position(target_pose);
     path_thread.lock();
     _target_matrix = Utilities::pose_to_matrix(target_pose);
     path_thread.unlock();
