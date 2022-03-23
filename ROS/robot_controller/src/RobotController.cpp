@@ -249,7 +249,7 @@ void RobotController::_robot_movement_thread_func() {
 void RobotController::_path_computation_thread_func(){
   double smoothTime = 1;
   double max_linear_velocity = 0.03, max_linear_acceleration = 0.05, max_linear_jerk = 10;
-  double max_angular_velocity = 0.05, max_angular_acceleration = 0.05, max_angular_jerk = 10;
+  double max_angular_velocity = 0.0174533, max_angular_acceleration = 0.005, max_angular_jerk =1;
   double alpha=0.00001;
   double eulerXVelocity = 0.0, eulerYVelocity = 0.0, eulerZVelocity = 0.0;
   double publish_period = 0.03;
@@ -384,11 +384,11 @@ void RobotController::_joint_computation_thread_func(){
   ros::Rate cmd_rate(1 / publish_period);
   control_msgs::JointJog joint_deltas;
   joint_deltas.joint_names = _joint_name;
-  joint_deltas.header.frame_id = "world";
+  joint_deltas.header.frame_id = "base_link";
   geometry_msgs::Pose current_robot_pose = _move_group_ptr->getCurrentPose().pose;
   vector<double> current_robot_joint = _move_group_ptr->getCurrentJointValues();
   Eigen::Matrix4d current_end_effector_matrix = Utilities::pose_to_matrix(current_robot_pose);
-  _target_matrix = Utilities::pose_to_matrix(_model_state.get_model_position_world("targetCylinder"));
+  _target_matrix = Utilities::pose_to_matrix(_rviz_marker._target_pose);
   vector<double> target_robot_joint, last_target_joint;
   target_robot_joint = current_robot_joint;
   last_target_joint = target_robot_joint;
@@ -407,7 +407,6 @@ void RobotController::_joint_computation_thread_func(){
     path_thread.unlock();
     current_robot_pose = _move_group_ptr->getCurrentPose().pose;
     current_robot_joint = _move_group_ptr->getCurrentJointValues();
-    _model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
 
     //Get the current end effector matrix
     current_end_effector_matrix = Utilities::pose_to_matrix(current_robot_pose);
@@ -455,9 +454,9 @@ void RobotController::_joint_computation_thread_func(){
        //vector<double> damp_euler = Utilities::RuckigCalculation_Jnt(current_robot_joint, target_robot_joint, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration, max_angular_jerk, publish_period);
        //vector<double> damp_euler = Utilities::OTGCalculation_Jnt(current_robot_joint, target_robot_joint, last_target_joint, profile_joint, idx_joint, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration, max_angular_jerk, publish_period);
        vector<double> damp_euler = Utilities::OTGCalculation_JntS(current_robot_joint, target_robot_joint, last_target_joint, trajOTG_ptr, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration, max_angular_jerk, alpha, 0.012);
-       joint_stream << target_robot_joint[0] << ","<< target_robot_joint[1] << ","<< target_robot_joint[2] << ","<< target_robot_joint[3] << ","<< target_robot_joint[4] << ","<< target_robot_joint[5] << ","<<damp_euler[0] << ","<< damp_euler[1] << ","<< damp_euler[2] << ","<< damp_euler[3] << ","<< damp_euler[4] << ","<< damp_euler[5] << ","<< current_robot_joint[0] << ","<< current_robot_joint[1] << ","<< current_robot_joint[2] << ","<< current_robot_joint[3] << ","<< current_robot_joint[4] << ","<< current_robot_joint[5] << ",";
-       joint_stream.seekp(-1, std::ios_base::end);
-       joint_stream << "\n";
+       //joint_stream << target_robot_joint[0] << ","<< target_robot_joint[1] << ","<< target_robot_joint[2] << ","<< target_robot_joint[3] << ","<< target_robot_joint[4] << ","<< target_robot_joint[5] << ","<<damp_euler[0] << ","<< damp_euler[1] << ","<< damp_euler[2] << ","<< damp_euler[3] << ","<< damp_euler[4] << ","<< damp_euler[5] << ","<< current_robot_joint[0] << ","<< current_robot_joint[1] << ","<< current_robot_joint[2] << ","<< current_robot_joint[3] << ","<< current_robot_joint[4] << ","<< current_robot_joint[5] << ",";
+       //joint_stream.seekp(-1, std::ios_base::end);
+       //joint_stream << "\n";
        joint_deltas.velocities = {current_angular_velocity[0],current_angular_velocity[1],current_angular_velocity[2],current_angular_velocity[3],current_angular_velocity[4],current_angular_velocity[5]};
    }
    joint_deltas.header.stamp = ros::Time::now();
