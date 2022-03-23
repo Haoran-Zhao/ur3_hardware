@@ -249,7 +249,7 @@ void RobotController::_robot_movement_thread_func() {
 void RobotController::_path_computation_thread_func(){
   double smoothTime = 1;
   double max_linear_velocity = 0.03, max_linear_acceleration = 0.05, max_linear_jerk = 10;
-  double max_angular_velocity = 0.5, max_angular_acceleration = 5, max_angular_jerk = 100;
+  double max_angular_velocity = 0.05, max_angular_acceleration = 0.05, max_angular_jerk = 10;
   double alpha=0.00001;
   double eulerXVelocity = 0.0, eulerYVelocity = 0.0, eulerZVelocity = 0.0;
   double publish_period = 0.03;
@@ -359,6 +359,7 @@ void RobotController::_path_computation_thread_func(){
     twist.twist.angular.x = isnan(end_effector_angular_velocity.x())? 0 : end_effector_angular_velocity.x();
     twist.twist.angular.y = isnan(end_effector_angular_velocity.y())? 0 : end_effector_angular_velocity.y();
     twist.twist.angular.z = isnan(end_effector_angular_velocity.z())? 0 : end_effector_angular_velocity.z();
+    //printf("time stamp: %f\n", twist.header.stamp);
     //printf("linear vel: %f %f %f\n", twist.twist.linear.x,twist.twist.linear.y,twist.twist.linear.z);
     //printf("angular vel: %f %f %f\n", twist.twist.angular.x,twist.twist.angular.y,twist.twist.angular.z);
     _twist_stamped_pub.publish(twist);
