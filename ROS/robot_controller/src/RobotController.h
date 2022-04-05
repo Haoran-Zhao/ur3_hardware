@@ -197,7 +197,7 @@ protected:
     /**
     * Initializes the gazebo models
     */
-    virtual void _initialize_gazebo_models();
+    virtual void _initialize_rviz_models();
 
     /**
     * Moves the robot to the initial named position specified in the moveit setup file

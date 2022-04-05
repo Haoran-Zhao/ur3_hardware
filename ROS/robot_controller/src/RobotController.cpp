@@ -9,11 +9,13 @@
 #include "Utilities.h"
 
 RobotController::RobotController() {
+  //initial variables
     _move_group_ptr = NULL;
     _node_handle = NULL;
     _async_spinner = NULL;
     _marker_enabled = false;
     _model_state_enabled = true;
+    // change to false if want to control the joint
     _Cartesian_compute=true;
 }
 
@@ -73,7 +75,7 @@ bool RobotController::initialize(int argc, char **argv) {
         _loop_rate_ptr = new ros::Rate(1);
 
         //Initialize the various gazebo models
-        _initialize_gazebo_models();
+        _initialize_rviz_models();
 
         //Initialize the compute path object
         _compute_path->initialize(_node_handle, &_model_state, Utilities::pose_to_matrix(_move_group_ptr->getCurrentPose().pose));
@@ -87,7 +89,6 @@ bool RobotController::initialize(int argc, char **argv) {
         //Thread that does robot movement
         if (_Cartesian_compute)
         {
-          //_robot_movement_thread = std::thread(&RobotController::_robot_movement_thread_func, this);
           _path_computation_thread = std::thread(&RobotController::_path_computation_thread_func, this);
           _twist_stamped_pub = _node_handle->advertise<geometry_msgs::TwistStamped>("/servo_server/delta_twist_cmds", 1 , true);
         }
@@ -108,6 +109,7 @@ bool RobotController::initialize(int argc, char **argv) {
 }
 
 void RobotController::jointCallback(const sensor_msgs::JointState& state){
+  //get joint info from /joint_states and save to stream
     auto header = state.header.stamp;
     auto& names = state.name;
     auto& positions = state.position;
@@ -122,6 +124,7 @@ void RobotController::jointCallback(const sensor_msgs::JointState& state){
 }
 
 void RobotController::writeJointStatesToFile(){
+  //functions to write the stringstream to csv file
     std::ofstream outFile;
     if(_Cartesian_compute)
     {
@@ -150,27 +153,25 @@ void RobotController::_move_to_initial_position() {
 /*
 	IN 			: None
 	OUT 		: None
-	DESCRIPTION	: Initializes the gazebo model state object, and sets the pose of EndEffectorSphere and RCMSphere in the Gazebo environment
+	DESCRIPTION	: Initializes the rviz marker position
 */
-void RobotController::_initialize_gazebo_models() {
+void RobotController::_initialize_rviz_models() {
     //Get the current end effector pose
     geometry_msgs::Pose current_robot_pose = _move_group_ptr->getCurrentPose().pose;
-
-    //Intialize gazebo model state object
-    //_model_state.initialize(_node_handle);
-
-    //Set the end effector sphere to robot pose
-    //_model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
 
     //Set the ScopeCylinder sphere
     geometry_msgs::Pose cylinder_pose = current_robot_pose;
 
     tf2::Quaternion cylinder_quat(cylinder_pose.orientation.x, cylinder_pose.orientation.y, cylinder_pose.orientation.z, cylinder_pose.orientation.w);
-
-    //_model_state.set_model_position_world("targetCylinder", cylinder_pose);
+    //initialize the indicator position and pass to rviz target_pose variable
     _rviz_marker._update_target_position(cylinder_pose);
 }
 
+/*
+	IN 			: None
+	OUT 		: None
+	DESCRIPTION	: initialize kdl tree for forward and inverse kinematics calculation
+*/
 
 void RobotController::_kdl_initialize()
 {
@@ -208,6 +209,7 @@ void RobotController::_kdl_initialize()
   _joint_state = KDL::JntArrayVel(numJoint);
   _joint_name = {"shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint","wrist_1_joint", "wrist_2_joint", "wrist_3_joint"};
 }
+
 
 void RobotController::_Joint_state_cb(const sensor_msgs::JointStateConstPtr& msg)
 {
@@ -247,15 +249,16 @@ void RobotController::_robot_movement_thread_func() {
 }
 
 void RobotController::_path_computation_thread_func(){
+  //initialize variables and constriants for trajectory planning
   double smoothTime = 1;
   double max_linear_velocity = 1, max_linear_acceleration = 0.05, max_linear_jerk = 10;
   double max_angular_velocity = 1, max_angular_acceleration = 0.05, max_angular_jerk =10;
-  double alpha=0.00001;
+  double alpha=0.00001; //change the aggressiveness of trajectory
   double eulerXVelocity = 0.0, eulerYVelocity = 0.0, eulerZVelocity = 0.0;
   double publish_period = 0.03;
   ros::Rate cmd_rate(1 / publish_period);
   geometry_msgs::TwistStamped twist;
-  twist.header.frame_id = "base_link";
+  twist.header.frame_id = "base_link"; // to make hardware work, the base frame is base_link not world
 
   geometry_msgs::Pose current_robot_pose = _move_group_ptr->getCurrentPose().pose;
   Eigen::Matrix4d current_end_effector_matrix = Utilities::pose_to_matrix(current_robot_pose);
@@ -286,7 +289,6 @@ void RobotController::_path_computation_thread_func(){
     Eigen::Matrix4d target_matrix = _target_matrix;
     path_thread.unlock();
     current_robot_pose = _move_group_ptr->getCurrentPose().pose;
-    //_model_state.set_model_position_world("EndEffectorSphere", current_robot_pose);
 
     //Get the current end effector matrix
     current_end_effector_matrix = Utilities::pose_to_matrix(current_robot_pose);
@@ -294,9 +296,7 @@ void RobotController::_path_computation_thread_func(){
     //Set target_pos as the target position
     target_pos = target_matrix.block<3, 1>(0, 3);
     //Get the damp position
-    //damp_position = Utilities::SmoothDampVector(current_pos, target_pos, current_linear_velocity, smoothTime, max_linear_velocity, publish_period);
     //damp_position = Utilities::RuckigCalculation(current_pos, target_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration, max_linear_jerk, publish_period);
-    //damp_position = Utilities::OTGCalculation(current_pos, target_pos, last_target_pos, profile_pos, idx_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, publish_period);
     //damp_position = Utilities::OTGCalculationS(current_pos, target_pos, last_target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
     damp_position = Utilities::OTGCalculationOL(current_pos, target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
 
@@ -321,7 +321,6 @@ void RobotController::_path_computation_thread_func(){
     //Calculate Angular velocities and positions
     Eigen::Vector3d current_euler(current_x, current_y, current_z);
     Eigen::Vector3d target_euler(target_x, target_y, target_z);
-    //damp_euler = Utilities::SmoothDampVector(current_euler, target_euler, current_angular_velocity, smoothTime, max_angular_velocity, publish_period);
     //damp_euler = Utilities::RuckigCalculation(current_euler, target_euler, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration, max_angular_jerk, publish_period);
     //damp_euler = Utilities::OTGCalculationS(current_euler, target_euler, last_target_euler, trajOTG_euler_ptr, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration,max_angular_jerk,alpha, publish_period);
     damp_euler = Utilities::OTGCalculationOL(current_euler, target_euler, trajOTG_euler_ptr, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration,max_angular_jerk,alpha, publish_period);
