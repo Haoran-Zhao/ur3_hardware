@@ -58,6 +58,8 @@ public:
     void Callback(const visualization_msgs::MarkerArray& state);
 
     geometry_msgs::Pose _target_pose;
+    geometry_msgs::Pose _rcm_pose;
+
 private:
 
     /**
@@ -70,6 +72,8 @@ private:
 	 * Stores the marker id
 	 */
     int _sphere_id;
+    int _rcm_id;
+    int _linelist_id;
     /**
    * Stores the marker id
    */

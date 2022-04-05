@@ -117,6 +117,12 @@ protected:
     */
     ros::NodeHandle *_node_handle;
 
+    Eigen::Matrix4d incision_matrix;
+
+    double _cylinder_angle;
+
+    double _scope_length;
+
     /**
     * Pointer to move group object
     */
