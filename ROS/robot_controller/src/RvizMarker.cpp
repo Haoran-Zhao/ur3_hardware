@@ -172,7 +172,7 @@ void RvizMarker::_publish_end_effector_position(){
 
         //Creates the marker
         visualization_msgs::Marker marker3;
-        marker3.header.frame_id = "world";
+        marker3.header.frame_id = "base_link";
         marker3.id = _rcm_id;
         marker3.type = visualization_msgs::Marker::SPHERE;
         marker3.action =  visualization_msgs::Marker::ADD;
@@ -191,7 +191,7 @@ void RvizMarker::_publish_end_effector_position(){
 
         //Creates the marker line
         visualization_msgs::Marker marker4;
-        marker4.header.frame_id = "world";
+        marker4.header.frame_id = "base_link";
         marker4.id = _linelist_id;
         marker4.type = visualization_msgs::Marker::LINE_LIST;
         marker4.action =  visualization_msgs::Marker::ADD;
