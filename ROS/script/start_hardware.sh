@@ -6,7 +6,10 @@ gnome-terminal -- bash -c "sh ./src/ur3_hardware/ROS/script/start_connection.sh;
 sleep 15
 gnome-terminal -- bash -c "sh ./src/ur3_hardware/ROS/script/start_planexecution.sh;exec bash"
 sleep 5
-roslaunch ur3_moveit_config moveit_rviz.launch rviz_config:=$(rospack find ur3_moveit_config)/launch/moveit.rviz
+gnome-terminal -- bash -c "sh ./src/ur3_hardware/ROS/script/start_rviz.sh;exec bash"
+sleep 5
+rosrun robot_controller robot_controller | tee /tmp/robot_controller.log
+
 #Now kill simulation on exit
 
 script_full_path=$(dirname "$0")
