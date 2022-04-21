@@ -362,8 +362,9 @@ void RobotController::_path_computation_thread_func(){
       Xb=Xa;
     }
 
-    printf("target x: %f y: %f z: %f\n", Xb(0), Xb(1), Xb(2));
     printf("current x: %f y: %f z: %f\n", Xa(0), Xa(1), Xa(2));
+    printf("target x: %f y: %f z: %f\n", Xb(0), Xb(1), Xb(2));
+    printf("current_Vel x: %f y: %f, z: %f\n", current_linear_velocity(0),current_linear_velocity(1),current_linear_velocity(2));
     //Calculate target matrix
     Eigen::Matrix4d target_matrix;
     target_matrix.setIdentity();
@@ -377,7 +378,6 @@ void RobotController::_path_computation_thread_func(){
     //damp_position = Utilities::RuckigCalculation(Xa, Xb, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration, max_linear_jerk, publish_period);
     //damp_position = Utilities::OTGCalculationS(Xa, Xb, last_target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
     damp_position = Utilities::OTGCalculationOL(Xa, Xb, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
-
     printf("damp_position x:%f y:%f z:%f\n", damp_position(0), damp_position(1), damp_position(2));
     //joint_stream << target_pos(0) << ","<< target_pos(1) << ","<< target_pos(2) << ","<< damp_position(0) << ","<< damp_position(1) << ","<< damp_position(2) <<","<< current_pos(0) << ","<< current_pos(1) << ","<< current_pos(2) << ",";
     //joint_stream.seekp(-1, std::ios_base::end);
@@ -393,7 +393,7 @@ void RobotController::_path_computation_thread_func(){
     double target_x, target_y, target_z;
     tf2::Matrix3x3(target_scope_tip_quat).getRPY(target_x, target_y, target_z);
 
-    //Utilities::correct_joint_range(current_x,current_y,current_z, target_x,target_y,target_z);
+    Utilities::correct_joint_range(current_x,current_y,current_z, target_x,target_y,target_z);
     //printf("current: %f %f %f, target: %f %f %f\n", current_x, current_y, current_z, target_x, target_y,target_z);
 
     //Calculate Angular velocities and positions
@@ -402,6 +402,7 @@ void RobotController::_path_computation_thread_func(){
     //Utilities::correct_joint_range(current_x,current_y,current_z, target_x,target_y,target_z);
     printf("euler current: x: %f y: %f z: %f\n", current_euler(0), current_euler(1),current_euler(2));
     printf("euler target: x: %f y: %f z: %f\n", target_euler(0), target_euler(1),target_euler(2));
+    printf("current_anVel x: %f y: %f, z: %f\n", current_angular_velocity(0),current_angular_velocity(1),current_angular_velocity(2));
 
     if ((target_euler-current_euler).norm() < 0.001)
     {
