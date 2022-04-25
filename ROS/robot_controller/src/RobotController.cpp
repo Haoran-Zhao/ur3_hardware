@@ -296,9 +296,9 @@ void RobotController::_path_computation_thread_func(){
     //Set target_pos as the target position
     target_pos = target_matrix.block<3, 1>(0, 3);
     //Get the damp position
-    //damp_position = Utilities::RuckigCalculation(current_pos, target_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration, max_linear_jerk, publish_period);
+    damp_position = Utilities::RuckigCalculation(current_pos, target_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration, max_linear_jerk, publish_period);
     //damp_position = Utilities::OTGCalculationS(current_pos, target_pos, last_target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
-    damp_position = Utilities::OTGCalculationOL(current_pos, target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
+    //damp_position = Utilities::OTGCalculationOL(current_pos, target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
 
     //joint_stream << target_pos(0) << ","<< target_pos(1) << ","<< target_pos(2) << ","<< damp_position(0) << ","<< damp_position(1) << ","<< damp_position(2) <<","<< current_pos(0) << ","<< current_pos(1) << ","<< current_pos(2) << ",";
     //joint_stream.seekp(-1, std::ios_base::end);
@@ -321,9 +321,9 @@ void RobotController::_path_computation_thread_func(){
     //Calculate Angular velocities and positions
     Eigen::Vector3d current_euler(current_x, current_y, current_z);
     Eigen::Vector3d target_euler(target_x, target_y, target_z);
-    //damp_euler = Utilities::RuckigCalculation(current_euler, target_euler, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration, max_angular_jerk, publish_period);
+    damp_euler = Utilities::RuckigCalculation(current_euler, target_euler, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration, max_angular_jerk, publish_period);
     //damp_euler = Utilities::OTGCalculationS(current_euler, target_euler, last_target_euler, trajOTG_euler_ptr, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration,max_angular_jerk,alpha, publish_period);
-    damp_euler = Utilities::OTGCalculationOL(current_euler, target_euler, trajOTG_euler_ptr, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration,max_angular_jerk,alpha, publish_period);
+    //damp_euler = Utilities::OTGCalculationOL(current_euler, target_euler, trajOTG_euler_ptr, current_angular_velocity, current_angular_acceleration, max_angular_velocity, max_angular_acceleration,max_angular_jerk,alpha, publish_period);
 
     double x_cur = damp_euler.x();
     double y_cur = damp_euler.y();
