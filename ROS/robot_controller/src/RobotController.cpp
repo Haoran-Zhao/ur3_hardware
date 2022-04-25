@@ -86,6 +86,7 @@ bool RobotController::initialize(int argc, char **argv) {
 
         //ROS publisher to publish trajectory commands to the robot
         _joint_pub = _node_handle->advertise<trajectory_msgs::JointTrajectory>("/scaled_pos_joint_traj_controller/command", 1);
+        _cam_sub = _node_handle->subscribe("/HandPosition", 1, &RobotController::camCallback, this);
         //Thread that does robot movement
         if (_Cartesian_compute)
         {
@@ -106,6 +107,12 @@ bool RobotController::initialize(int argc, char **argv) {
     }
 
     return status;
+}
+
+void RobotController::camCallback(const geometry_msgs::Point& msg){
+    _cam_position.x = msg.x;
+    _cam_position.y = msg.y;
+    printf("HandPosition x: %f, y: %f\n", _cam_position.x,_cam_position.y);
 }
 
 void RobotController::jointCallback(const sensor_msgs::JointState& state){

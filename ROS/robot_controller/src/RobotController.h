@@ -101,12 +101,13 @@ protected:
     /**
     /* To record joint states*/
     ros::Subscriber  _joint_state_sub;
+    ros::Subscriber  _cam_sub;
 
     /**
     * Joint state subscirber callback
     */
     void _Joint_state_cb(const sensor_msgs::JointStateConstPtr& msg);
-
+    void camCallback(const geometry_msgs::Point& msg);
     void jointCallback(const sensor_msgs::JointState& state);
     std::stringstream joint_stream;
 
@@ -171,6 +172,7 @@ protected:
     * Holds the delta pose that is applied to the cylinder
     */
     geometry_msgs::Pose _delta_pose;
+    geometry_msgs::Point _cam_position;
 
     /**
     * Stores the target matrix
