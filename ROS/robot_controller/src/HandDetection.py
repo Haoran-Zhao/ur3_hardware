@@ -89,9 +89,9 @@ class Detection:
         mp_drawing = mp.solutions.drawing_utils
         mp_hands = mp.solutions.hands
         with mp_hands.Hands(
-        static_image_mode=True,
+        static_image_mode=False,
         max_num_hands=1,
-        min_detection_confidence=0.5) as hands:
+        min_detection_confidence=0.6) as hands:
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
             image = cv2.flip(image, 1)

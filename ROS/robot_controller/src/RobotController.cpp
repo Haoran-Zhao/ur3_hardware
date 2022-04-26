@@ -112,7 +112,16 @@ bool RobotController::initialize(int argc, char **argv) {
 void RobotController::camCallback(const geometry_msgs::Point& msg){
     _cam_position.x = msg.x;
     _cam_position.y = msg.y;
-    printf("HandPosition x: %f, y: %f\n", _cam_position.x,_cam_position.y);
+    printf("HandPosition x: %f, y: %f\n", _cam_position.x-320,_cam_position.y-240);
+    geometry_msgs::Pose delta_pose;
+    delta_pose.position.x = delta_pose.position.y = delta_pose.position.z = 0.0;
+    delta_pose.orientation.x = delta_pose.orientation.y = delta_pose.orientation.z = 0.0;
+    delta_pose.orientation.w =1.0;
+    delta_pose.position.x -= (isnan(_cam_position.y)? 0:(_cam_position.y-240) * 0.000025);
+    delta_pose.position.y -= (isnan(_cam_position.x)? 0:(_cam_position.x-320) * 0.000025);
+    delta_pose.position.z += 0.0;
+    printf("delta x: %f, y: %f, z: %f\n", delta_pose.position.x, delta_pose.position.y, delta_pose.position.z);
+    set_delta_pose(delta_pose);
 }
 
 void RobotController::jointCallback(const sensor_msgs::JointState& state){
@@ -306,6 +315,8 @@ void RobotController::_path_computation_thread_func(){
     damp_position = Utilities::RuckigCalculation(current_pos, target_pos, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration, max_linear_jerk, publish_period);
     //damp_position = Utilities::OTGCalculationS(current_pos, target_pos, last_target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
     //damp_position = Utilities::OTGCalculationOL(current_pos, target_pos, trajOTG_pos_ptr, current_linear_velocity, current_linear_acceleration, max_linear_velocity, max_linear_acceleration,max_linear_jerk, alpha, publish_period);
+    printf("current pos: %f %f %f\n", current_pos(0),current_pos(1),current_pos(2));
+    printf("target pos: %f %f %f\n", target_pos(0),target_pos(1),target_pos(2));
 
     //joint_stream << target_pos(0) << ","<< target_pos(1) << ","<< target_pos(2) << ","<< damp_position(0) << ","<< damp_position(1) << ","<< damp_position(2) <<","<< current_pos(0) << ","<< current_pos(1) << ","<< current_pos(2) << ",";
     //joint_stream.seekp(-1, std::ios_base::end);
@@ -370,8 +381,16 @@ void RobotController::_path_computation_thread_func(){
     twist.twist.angular.y = isnan(end_effector_angular_velocity.y())? 0 : end_effector_angular_velocity.y();
     twist.twist.angular.z = isnan(end_effector_angular_velocity.z())? 0 : end_effector_angular_velocity.z();
     //printf("time stamp: %f\n", twist.header.stamp);
-    //printf("linear vel: %f %f %f\n", twist.twist.linear.x,twist.twist.linear.y,twist.twist.linear.z);
-    //printf("angular vel: %f %f %f\n", twist.twist.angular.x,twist.twist.angular.y,twist.twist.angular.z);
+    printf("linear vel: %f %f %f\n", twist.twist.linear.x,twist.twist.linear.y,twist.twist.linear.z);
+    printf("angular vel: %f %f %f\n", twist.twist.angular.x,twist.twist.angular.y,twist.twist.angular.z);
+
+    twist.twist.linear.x = 0;
+    twist.twist.linear.y = 0;
+    twist.twist.linear.z = 0;
+    twist.twist.angular.x = 0;
+    twist.twist.angular.y = 0;
+    twist.twist.angular.z = 0;
+
     _twist_stamped_pub.publish(twist);
 /*
     auto stop = chrono::high_resolution_clock::now();
